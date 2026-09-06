@@ -1,7 +1,11 @@
 # 开发/测试环境：应用从本地源码构建，数据库与生产环境完全隔离
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        # 国内网络本地构建走 goproxy.cn；GitHub Actions 等环境用 Dockerfile 默认值
+        GOPROXY: ${GOPROXY:-https://goproxy.cn,https://proxy.golang.org,direct}
     container_name: homeoa-dev
     # 显式映射应用所需变量（值仍来自 .env），MYSQL_ROOT_PASSWORD 不进应用容器
     environment:

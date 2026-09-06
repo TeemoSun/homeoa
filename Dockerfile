@@ -11,8 +11,11 @@ RUN npm run build
 # ---- Stage 2: 后端编译（go:embed 嵌入前端产物）----
 FROM golang:1.23-alpine AS backend-builder
 WORKDIR /build
+# GitHub Actions 上用默认官方源即可；本地（国内网络）构建时
+# 由 docker-compose.dev.yml 传入 GOPROXY=https://goproxy.cn,...
+ARG GOPROXY=https://proxy.golang.org,direct
 ENV CGO_ENABLED=0 \
-    GOPROXY=https://goproxy.cn,https://proxy.golang.org,direct
+    GOPROXY=${GOPROXY}
 COPY backend/go.mod backend/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY backend/ .
