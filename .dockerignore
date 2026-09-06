@@ -1,0 +1,33 @@
+# Git / IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Node / 前端构建产物（Docker 构建在容器内完成）
+frontend/node_modules
+frontend/dist
+node_modules
+
+# 后端构建产物
+backend/bin
+backend/coverage*
+
+# 环境变量与密钥（.env.example 占位模板除外，密钥不进构建上下文）
+.env
+.env.*
+!.env.example
+**/.env*
+!**/.env.example
+
+# 数据与日志
+data/
+*.db
+*.sqlite*
+*.log
+
+# 文档与临时文件
+docs/
+README.md
+PLAN.md
+*.md

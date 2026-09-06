@@ -1,0 +1,54 @@
+# 开发/测试环境：应用从本地源码构建，数据库与生产环境完全隔离
+services:
+  app:
+    build: .
+    container_name: homeoa-dev
+    # 显式映射应用所需变量（值仍来自 .env），MYSQL_ROOT_PASSWORD 不进应用容器
+    environment:
+      APP_PORT: 8080
+      APP_ENV: production
+      TZ: ${TZ:-Asia/Shanghai}
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 中设置 JWT_SECRET}
+      JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-24}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?请在 .env 中设置 ADMIN_INITIAL_PASSWORD}
+      DB_HOST: mysql
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-homeoa}
+      DB_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
+      DB_NAME: homeoa_dev
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:${HOST_PORT:-8080}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.4
+    container_name: homeoa-dev-mysql
+    environment:
+      MYSQL_DATABASE: homeoa_dev
+      MYSQL_USER: ${DB_USER:-homeoa}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 中设置 MYSQL_ROOT_PASSWORD}
+      TZ: ${TZ:-Asia/Shanghai}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql-dev-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  mysql-dev-data:

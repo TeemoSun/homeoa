@@ -1,0 +1,27 @@
+# Node
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# Go
+backend/bin/
+backend/coverage*
+*.test
+
+# 环境变量与密钥（仅保留占位模板 .env.example）
+.env*
+!.env.example
+
+# 数据与日志
+data/
+*.db
+*.sqlite*
+
+# 杂项
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# 本地 AI 工具状态（不公开）
+.mimosa/
