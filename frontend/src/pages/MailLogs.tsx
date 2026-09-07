@@ -47,6 +47,7 @@ export default function MailLogs() {
           total: data?.total ?? 0,
           onPageChange: (p) => void load(p),
         }}
+        scroll={{ x: 650 }}
         columns={[
           {
             title: '收件人',

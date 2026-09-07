@@ -138,6 +138,7 @@ export default function RequestsList({ scope }: { scope: 'mine' | 'pending' | 'a
           total: data?.total ?? 0,
           onPageChange: (p) => void load(p),
         }}
+        scroll={{ x: 680 }}
         columns={columns}
       />
     </div>

@@ -50,7 +50,7 @@ export default function DynamicForm({
               rules={rules}
               min={0}
               precision={2}
-              style={{ width: 240 }}
+              style={{ width: '100%', maxWidth: 320 }}
               prefix="¥"
             />
           )
@@ -66,7 +66,7 @@ export default function DynamicForm({
               type="date"
               format="yyyy-MM-dd"
               density="compact"
-              style={{ width: 240 }}
+              style={{ width: '100%', maxWidth: 320 }}
             />
           )
         }

@@ -123,6 +123,7 @@ export default function RequestTypes() {
         dataSource={types}
         rowKey="id"
         pagination={false}
+        scroll={{ x: 650 }}
         columns={[
           { title: '编码', dataIndex: 'code', width: 120 },
           { title: '名称', dataIndex: 'name' },

@@ -25,4 +25,27 @@ body {
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #e8f3ff 0%, #f2f3f5 60%);
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 12px 12px 24px;
+  }
+  .page-title {
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+  .semi-card-body {
+    padding: 16px 12px !important;
+  }
+  .semi-table-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .semi-modal {
+    max-width: calc(100vw - 32px) !important;
+  }
 }

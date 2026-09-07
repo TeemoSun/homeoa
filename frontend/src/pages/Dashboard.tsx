@@ -33,12 +33,12 @@ export default function Dashboard() {
         你好，{user?.display_name}
         {user?.role === 'admin' ? '（管理员）' : ''}
       </h2>
-      <Row gutter={16}>
+      <Row gutter={[12, 12]}>
         {cards.map((c) => (
-          <Col span={4} key={c.title} style={{ marginBottom: 16 }}>
-            <Card bodyStyle={{ padding: 16 }}>
+          <Col xs={12} sm={8} md={4} key={c.title} style={{ marginBottom: 12 }}>
+            <Card bodyStyle={{ padding: '12px 16px' }}>
               <div style={{ color: 'var(--semi-color-text-2)', fontSize: 13 }}>{c.title}</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: c.color, marginTop: 4 }}>{c.value}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: c.color, marginTop: 4 }}>{c.value}</div>
             </Card>
           </Col>
         ))}
@@ -50,6 +50,7 @@ export default function Dashboard() {
           dataSource={stats?.todo_list ?? []}
           rowKey="id"
           pagination={false}
+          scroll={{ x: 600 }}
           onRow={(record) => ({
             style: { cursor: 'pointer' },
             onClick: () => navigate(`/requests/${(record as { id: number }).id}`),

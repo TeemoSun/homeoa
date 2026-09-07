@@ -28,7 +28,7 @@ export default function Login() {
 
   return (
     <div className="login-bg">
-      <Card style={{ width: 380 }} bodyStyle={{ padding: 32 }}>
+      <Card style={{ width: '100%', maxWidth: 380 }} bodyStyle={{ padding: 24 }}>
         <h1 style={{ fontSize: 22, margin: '0 0 4px', textAlign: 'center' }}>HomeOA</h1>
         <p style={{ color: 'var(--semi-color-text-2)', textAlign: 'center', margin: '0 0 24px' }}>
           家庭 OA 审批系统

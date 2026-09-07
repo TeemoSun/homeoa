@@ -86,6 +86,7 @@ export default function Users() {
         dataSource={users}
         rowKey="id"
         pagination={false}
+        scroll={{ x: 750 }}
         columns={[
           { title: '用户名', dataIndex: 'username' },
           { title: '姓名', dataIndex: 'display_name' },
