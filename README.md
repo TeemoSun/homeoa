@@ -17,15 +17,15 @@
 |---|---|
 | 前端 | React 18 + TypeScript + Vite + Semi Design |
 | 后端 | Go + Gin + GORM |
-| 数据库 | MySQL 8 |
+| 数据库 | PostgreSQL 16 |
 | 邮件 | SMTP（`github.com/wneessen/go-mail`） |
-| 部署 | Docker Compose（app + mysql），镜像发布到 GHCR |
+| 部署 | Docker Compose（app + postgres），镜像发布到 GHCR |
 
 ## 快速开始（生产）
 
 ```bash
 cp .env.example .env
-# 编辑 .env：JWT_SECRET / ADMIN_INITIAL_PASSWORD / DB_PASSWORD / MYSQL_ROOT_PASSWORD / SMTP 等
+# 编辑 .env：JWT_SECRET / ADMIN_INITIAL_PASSWORD / DB_PASSWORD / SMTP 等
 
 docker compose up -d
 # 浏览器访问 http://<host>:8080，用 .env 中的 ADMIN_INITIAL_PASSWORD 登录 admin
@@ -47,7 +47,7 @@ docker compose -f docker-compose.dev.yml up -d --build
 ## 本地开发（前后端分离）
 
 ```bash
-# 后端（需本地 MySQL，或在 .env 中指向开发库）
+# 后端（需本地 PostgreSQL，或在 .env 中指向开发库）
 cd backend && go run ./cmd/server
 
 # 前端（Vite 代理 /api 到 127.0.0.1:8080）
@@ -63,7 +63,7 @@ homeoa/
 │   └── internal/          # config / database / model / handler / middleware / service / mailer / router / web(embed)
 ├── frontend/              # React 前端（Semi Design）
 ├── Dockerfile             # 多阶段构建：node → go(embed dist) → alpine 非 root
-├── docker-compose.yml     # 生产：ghcr.io/teemosun/homeoa:latest + mysql:8.4
+├── docker-compose.yml     # 生产：ghcr.io/teemosun/homeoa:latest + postgres:16-alpine
 ├── docker-compose.dev.yml # 开发/测试：本地 build + 独立数据库
 ├── scripts/               # 本地手动构建推送脚本
 └── .github/workflows/     # CI + GHCR 镜像自动发布

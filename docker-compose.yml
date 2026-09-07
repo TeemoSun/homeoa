@@ -2,7 +2,7 @@ services:
   app:
     image: ghcr.io/teemosun/homeoa:latest
     container_name: homeoa
-    # 显式映射应用所需变量（值仍来自 .env），MYSQL_ROOT_PASSWORD 不进应用容器
+    # 显式映射应用所需变量（值仍来自 .env）
     environment:
       APP_PORT: 8080
       APP_ENV: production
@@ -10,8 +10,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:?请在 .env 中设置 JWT_SECRET}
       JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-24}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?请在 .env 中设置 ADMIN_INITIAL_PASSWORD}
-      DB_HOST: mysql
-      DB_PORT: ${DB_PORT:-3306}
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
       DB_USER: ${DB_USER:-homeoa}
       DB_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
       DB_NAME: ${DB_NAME:-homeoa}
@@ -23,31 +23,25 @@ services:
     ports:
       - "${HOST_BIND:-127.0.0.1}:${HOST_PORT:-8080}:8080"
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     restart: unless-stopped
 
-  mysql:
-    image: mysql:8.4
-    container_name: homeoa-mysql
+  postgres:
+    image: postgres:16-alpine
+    container_name: homeoa-postgres
     environment:
-      MYSQL_DATABASE: ${DB_NAME:-homeoa}
-      MYSQL_USER: ${DB_USER:-homeoa}
-      MYSQL_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 中设置 MYSQL_ROOT_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-homeoa}
+      POSTGRES_USER: ${DB_USER:-homeoa}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
       TZ: ${TZ:-Asia/Shanghai}
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
     volumes:
-      - mysql-data:/var/lib/mysql
+      - ./data/postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-homeoa} -d ${DB_NAME:-homeoa}"]
       interval: 5s
       timeout: 5s
-      retries: 30
-      start_period: 30s
+      retries: 10
+      start_period: 10s
     restart: unless-stopped
-
-volumes:
-  mysql-data:

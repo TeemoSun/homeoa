@@ -66,10 +66,14 @@ func (j *JSON) UnmarshalJSON(b []byte) error {
 }
 
 func (JSON) GormDBDataType(db *gorm.DB, _ *schema.Field) string {
-	if db.Dialector.Name() == "mysql" {
+	switch db.Dialector.Name() {
+	case "mysql":
 		return "JSON"
+	case "postgres":
+		return "jsonb"
+	default:
+		return "TEXT"
 	}
-	return "TEXT"
 }
 
 // GormDataType 供 GORM 关系推断使用。

@@ -22,9 +22,9 @@
 # 1. 准备配置
 cp .env.example .env
 #    编辑 .env：JWT_SECRET、ADMIN_INITIAL_PASSWORD、DB_PASSWORD、
-#    MYSQL_ROOT_PASSWORD、SMTP 等（可用 openssl rand -hex 32 生成密钥）
+#    SMTP 等（可用 openssl rand -hex 32 生成密钥）
 
-# 2. 启动（应用 + MySQL 两个容器，应用等数据库健康后启动）
+# 2. 启动（应用 + PostgreSQL 两个容器，应用等数据库健康后启动）
 docker compose up -d
 
 # 3. 更新版本
@@ -49,7 +49,7 @@ cp .env.example .env   # 同样需要先完成 .env 配置
 docker compose -f docker-compose.dev.yml up -d --build
 ```
 
-开发环境从本地源码构建镜像，使用独立的数据库名（`homeoa_dev`）与独立数据卷，与生产数据互不影响。
+开发环境从本地源码构建镜像，使用独立的数据库名（`homeoa_dev`）与独立本地数据目录（`./data/postgres_dev`），与生产数据互不影响。
 
 ---
 

@@ -1,4 +1,4 @@
-// Package database 负责 MySQL 连接、自动迁移与种子数据。
+// Package database 负责 PostgreSQL 连接、自动迁移与种子数据。
 package database
 
 import (
@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
@@ -14,15 +14,15 @@ import (
 	"homeoa/internal/model"
 )
 
-// Open 连接 MySQL；容器编排下 MySQL 可能晚于应用就绪，做有限次重试。
+// Open 连接 PostgreSQL；容器编排下 PostgreSQL 可能晚于应用就绪，做有限次重试。
 func Open(cfg *config.Config) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName)
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=%s",
+		cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBPort, cfg.TZ)
 
 	var db *gorm.DB
 	var err error
 	for attempt := 1; attempt <= 30; attempt++ {
-		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
 			Logger: logger.Default.LogMode(logger.Warn),
 		})
 		if err == nil {

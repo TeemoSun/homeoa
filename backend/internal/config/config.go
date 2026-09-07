@@ -57,7 +57,7 @@ func Load() (*Config, error) {
 		TZ:      get("TZ", "Asia/Shanghai"),
 
 		DBHost: get("DB_HOST", "127.0.0.1"),
-		DBPort: get("DB_PORT", "3306"),
+		DBPort: get("DB_PORT", "5432"),
 		DBUser: get("DB_USER", "homeoa"),
 		DBName: get("DB_NAME", "homeoa"),
 	}

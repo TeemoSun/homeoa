@@ -9,7 +9,7 @@
 | 仓库 | `github.com/TeemoSun/homeoa`，**公开**仓库 |
 | 前端 | React 18 + TypeScript + Vite + **Semi Design**（字节/抖音团队，现代风格、活跃维护） |
 | 后端 | Go + Gin + GORM |
-| 数据库 | MySQL 8 |
+| 数据库 | PostgreSQL 16 |
 | 审批流 | **单级审批**：提交 → 审批人通过/拒绝/退回 → 结束 |
 | 账号体系 | **管理员创建成员账号**，无开放注册；成员首次登录可改密码、配邮箱 |
 | 请求类型 | 只做一种：**预算申请**（用于购买东西）；类型仍为数据驱动（类型表 + 动态表单字段 JSON Schema），日后想加新类型时管理员在类型管理页自行添加，无需改代码 |
@@ -21,7 +21,7 @@
 
 ```
 浏览器 ──► Go (Gin)
-           ├── /api/v1/*  ──► 业务 API ──► MySQL (GORM)
+           ├── /api/v1/*  ──► 业务 API ──► PostgreSQL (GORM)
            ├── /assets/*  ──► go:embed 嵌入的前端静态文件
            └── /*         ──► SPA fallback (index.html)
 ```
@@ -155,8 +155,8 @@ TZ=Asia/Shanghai
 ADMIN_INITIAL_PASSWORD=<首次初始化管理员密码>
 
 # ===== 数据库 =====
-DB_HOST=mysql
-DB_PORT=3306
+DB_HOST=postgres
+DB_PORT=5432
 DB_USER=homeoa
 DB_PASSWORD=<自行生成>
 DB_NAME=homeoa
@@ -181,10 +181,10 @@ MAIL_ENABLED=true
 
 **docker-compose.yml（生产）**
 - `app`：`image: ghcr.io/teemosun/homeoa:latest`，`env_file: .env`，端口 `${HOST_BIND:-127.0.0.1}:${HOST_PORT:-8080}:8080`（默认只绑本机，需外网访问时在 `.env` 覆盖），`restart: unless-stopped`
-- `mysql:8.4`：数据卷持久化 + healthcheck；app `depends_on` mysql 健康后启动
+- `postgres:16-alpine`：本地相对目录持久化（`./data/postgres`） + healthcheck；app `depends_on` postgres 健康后启动
 
 **docker-compose.dev.yml（开发/测试服务器）**
-- 相同拓扑，`app` 改为 `build: .` 从本地构建，数据库独立命名（`homeoa_dev`）与独立数据卷
+- 相同拓扑，`app` 改为 `build: .` 从本地构建，数据库独立命名（`homeoa_dev`）与独立本地数据目录（`./data/postgres_dev`）
 - 更新方式：`docker compose -f docker-compose.dev.yml up -d --build`
 
 **镜像发布（两条通道）**
