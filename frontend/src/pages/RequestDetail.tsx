@@ -168,7 +168,7 @@ export default function RequestDetail() {
           <Descriptions
             size="medium"
             layout="vertical"
-            data={t.form_schema.fields.map((f) => ({
+            data={(t.form_schema?.fields ?? []).map((f) => ({
               key: f.label,
               value: formData[f.name] === undefined || formData[f.name] === '' ? '-' : String(formData[f.name]),
             }))}
@@ -267,7 +267,7 @@ export default function RequestDetail() {
         footer={null}
         width={520}
       >
-        {t && (
+        {t?.form_schema && (
           <DynamicForm
             fields={t.form_schema.fields}
             initValues={formData}

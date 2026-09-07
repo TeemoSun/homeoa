@@ -359,7 +359,7 @@ func (s *RequestService) List(user *model.User, scope, status string, typeID uin
 func (s *RequestService) Get(user *model.User, id uint) (*model.Request, []model.RequestLog, error) {
 	var req model.Request
 	err := s.DB.Preload("Type", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, code, name, icon, approver_id, enabled")
+		return db.Select("id, code, name, icon, approver_id, enabled, form_schema")
 	}).Preload("Submitter", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id, username, display_name, email")
 	}).Preload("Approver", func(db *gorm.DB) *gorm.DB {
