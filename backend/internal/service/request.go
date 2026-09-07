@@ -41,6 +41,9 @@ func ValidateFormData(schema *model.FormSchema, data map[string]any) (clean map[
 			if nerr != nil {
 				return nil, nil, "", fmt.Errorf("「%s」必须是数字", f.Label)
 			}
+			if v < 0 {
+				return nil, nil, "", fmt.Errorf("「%s」不能为负数", f.Label)
+			}
 			clean[f.Name] = v
 			if f.Name == "amount" {
 				a := v

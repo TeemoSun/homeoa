@@ -83,6 +83,12 @@ func TestValidateFormData(t *testing.T) {
 	}); err == nil {
 		t.Fatal("数字字段传非数字应报错")
 	}
+	// 数字字段为负数
+	if _, _, _, err := ValidateFormData(schema, map[string]any{
+		"item_name": "x", "amount": -1,
+	}); err == nil {
+		t.Fatal("数字字段为负数应报错")
+	}
 	// 日期格式错误
 	if _, _, _, err := ValidateFormData(schema, map[string]any{
 		"item_name": "x", "amount": 1, "expected_date": "09-15",
