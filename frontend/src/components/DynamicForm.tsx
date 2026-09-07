@@ -1,11 +1,23 @@
-import { Button, Form } from '@douyinfe/semi-ui'
+import { useState } from 'react'
+import type { FormEvent } from 'react'
+import {
+  Button,
+  FieldError,
+  Input,
+  Label,
+  NumberField,
+  TextArea,
+  TextField,
+} from '@heroui/react'
 import type { FormField } from '../api/types'
 
 export interface DynamicValues {
   [key: string]: unknown
 }
 
-// DynamicForm 按类型的 form_schema 渲染表单。values 为受控初始值。
+type FieldValue = string | number
+
+// DynamicForm 按类型的 form_schema 渲染表单，内部维护受控值
 export default function DynamicForm({
   fields,
   initValues,
@@ -19,72 +31,114 @@ export default function DynamicForm({
   submitting: boolean
   onSubmit: (values: DynamicValues) => void
 }) {
+  const [values, setValues] = useState<Record<string, FieldValue>>(() => {
+    const initial: Record<string, FieldValue> = {}
+    for (const f of fields) {
+      const raw = initValues?.[f.name]
+      if (raw !== undefined && raw !== null && raw !== '') {
+        initial[f.name] = raw as FieldValue
+      }
+    }
+    return initial
+  })
+
+  const set = (key: string, value: FieldValue) => {
+    setValues((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    onSubmit({ ...values })
+  }
+
+  const requiredValidate = (f: FormField) => (v: unknown) => {
+    if (!f.required) return undefined
+    if (typeof v === 'number') return Number.isNaN(v) ? `请填写${f.label}` : undefined
+    return v && String(v).trim() !== '' ? undefined : `请填写${f.label}`
+  }
+
   return (
-    <Form<DynamicValues>
-      initValues={initValues}
-      onSubmit={(values) => onSubmit(values ?? {})}
-      labelPosition="top"
-    >
+    <form onSubmit={submit} className="flex flex-col gap-4">
       {fields.map((f) => {
-        const rules = f.required ? [{ required: true, message: `请填写${f.label}` }] : undefined
+        const value = values[f.name]
+        const str = value === undefined || typeof value === 'number' ? '' : value
         if (f.type === 'textarea') {
           return (
-            <Form.TextArea
+            <TextField
               key={f.name}
-              field={f.name}
-              label={f.label}
-              placeholder={f.placeholder}
-              rules={rules}
-              autosize={{ minRows: 2, maxRows: 6 }}
-              showClear
-            />
+              value={str}
+              onChange={(v) => set(f.name, v)}
+              isRequired={f.required}
+              validate={requiredValidate(f)}
+              className="flex flex-col gap-1.5"
+            >
+              <Label>{f.label}</Label>
+              <TextArea placeholder={f.placeholder} className="min-h-20" maxLength={2000} />
+              <FieldError />
+            </TextField>
           )
         }
         if (f.type === 'number') {
           return (
-            <Form.InputNumber
+            <NumberField
               key={f.name}
-              field={f.name}
-              label={f.label}
-              placeholder={f.placeholder}
-              rules={rules}
-              min={0}
-              precision={2}
-              style={{ width: '100%', maxWidth: 320 }}
-              prefix="¥"
-            />
+              minValue={0}
+              formatOptions={{
+                style: 'currency',
+                currency: 'CNY',
+                currencyDisplay: 'narrowSymbol',
+                maximumFractionDigits: 2,
+              }}
+              value={typeof value === 'number' ? value : Number.NaN}
+              onChange={(v) => set(f.name, Number.isNaN(v) ? '' : v)}
+              isRequired={f.required}
+              validate={requiredValidate(f)}
+              className="flex max-w-80 flex-col gap-1.5"
+            >
+              <Label>{f.label}</Label>
+              <NumberField.Group>
+                <NumberField.Input placeholder={f.placeholder} />
+              </NumberField.Group>
+              <FieldError />
+            </NumberField>
           )
         }
         if (f.type === 'date') {
           return (
-            <Form.DatePicker
+            <TextField
               key={f.name}
-              field={f.name}
-              label={f.label}
-              placeholder={f.placeholder || '选择日期'}
-              rules={rules}
-              type="date"
-              format="yyyy-MM-dd"
-              density="compact"
-              style={{ width: '100%', maxWidth: 320 }}
-            />
+              value={str}
+              onChange={(v) => set(f.name, v)}
+              isRequired={f.required}
+              validate={requiredValidate(f)}
+              className="flex max-w-80 flex-col gap-1.5"
+            >
+              <Label>{f.label}</Label>
+              <Input type="date" placeholder={f.placeholder || '选择日期'} />
+              <FieldError />
+            </TextField>
           )
         }
         return (
-          <Form.Input
+          <TextField
             key={f.name}
-            field={f.name}
-            label={f.label}
-            placeholder={f.placeholder}
-            rules={rules}
-            showClear
-            maxLength={500}
-          />
+            value={str}
+            onChange={(v) => set(f.name, v)}
+            isRequired={f.required}
+            validate={requiredValidate(f)}
+            className="flex flex-col gap-1.5"
+          >
+            <Label>{f.label}</Label>
+            <Input type="text" placeholder={f.placeholder} maxLength={500} />
+            <FieldError />
+          </TextField>
         )
       })}
-      <Button htmlType="submit" type="primary" theme="solid" loading={submitting}>
-        {submitText}
-      </Button>
-    </Form>
+      <div className="pt-1">
+        <Button type="submit" isPending={submitting}>
+          {submitText}
+        </Button>
+      </div>
+    </form>
   )
 }

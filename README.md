@@ -9,13 +9,13 @@
 - **账号体系**：管理员创建成员账号，无开放注册；成员首次登录可改密码、配邮箱
 - **邮件通知**：提交、审批结果、退回、评论、撤回均邮件通知对应人（用户资料里的邮箱，未配置则跳过并记日志）
 - **审计留痕**：流转记录时间线 + 邮件发送日志
-- **单镜像部署**：前端（React 18 + Semi Design）构建产物通过 `go:embed` 打进 Go 二进制，Go 同时托管前端与 API，无需 Nginx
+- **单镜像部署**：前端（React 19 + HeroUI）构建产物通过 `go:embed` 打进 Go 二进制，Go 同时托管前端与 API，无需 Nginx
 
 ## 技术栈
 
 | 层 | 选型 |
 |---|---|
-| 前端 | React 18 + TypeScript + Vite + Semi Design |
+| 前端 | React 19 + TypeScript + Vite + HeroUI (Tailwind CSS v4) |
 | 后端 | Go + Gin + GORM |
 | 数据库 | PostgreSQL 16 |
 | 邮件 | SMTP（`github.com/wneessen/go-mail`） |
@@ -61,7 +61,7 @@ homeoa/
 ├── backend/               # Go 后端（Gin + GORM）
 │   ├── cmd/server/        # 入口
 │   └── internal/          # config / database / model / handler / middleware / service / mailer / router / web(embed)
-├── frontend/              # React 前端（Semi Design）
+├── frontend/              # React 前端（HeroUI + Tailwind v4，玻璃拟态风格）
 ├── Dockerfile             # 多阶段构建：node → go(embed dist) → alpine 非 root
 ├── docker-compose.yml     # 生产：ghcr.io/teemosun/homeoa:latest + postgres:16-alpine
 ├── docker-compose.dev.yml # 开发/测试：本地 build + 独立数据库

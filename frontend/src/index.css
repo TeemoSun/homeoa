@@ -1,51 +1,103 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+/* ============ 全局基调：柔和彩色光斑 + 毛玻璃 ============ */
+
 body {
-  margin: 0;
-  background: #f2f3f5;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
-    'Microsoft YaHei', sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-
-.page {
-  padding: 20px 24px;
-  max-width: 1200px;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1d2129;
-  margin: 0 0 16px;
-}
-
-.login-bg {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #e8f3ff 0%, #f2f3f5 60%);
-  padding: 16px;
-  box-sizing: border-box;
+  color-scheme: light;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(52rem 36rem at 10% -12%, oklch(0.9 0.055 245 / 0.6), transparent 62%),
+    radial-gradient(44rem 32rem at 108% 12%, oklch(0.92 0.06 320 / 0.5), transparent 62%),
+    radial-gradient(40rem 30rem at 50% 115%, oklch(0.93 0.05 200 / 0.5), transparent 65%),
+    oklch(0.973 0.006 250);
+  background-attachment: fixed;
 }
 
-@media (max-width: 768px) {
+/* 玻璃面板：覆盖在光斑背景上，保持文字可读性 */
+.glass {
+  background-color: oklch(1 0 0 / 0.62);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+}
+
+/* 侧边栏 / 顶栏用的更实一点玻璃，保证导航可读 */
+.glass-strong {
+  background-color: oklch(1 0 0 / 0.72);
+  backdrop-filter: blur(28px) saturate(1.7);
+  -webkit-backdrop-filter: blur(28px) saturate(1.7);
+}
+
+/* ============ 页面骨架（放入 components 层，便于 Tailwind 工具类覆盖宽度等） ============ */
+
+@layer components {
   .page {
-    padding: 12px 12px 24px;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 76rem;
+    padding: 24px;
   }
+
   .page-title {
-    font-size: 18px;
-    margin-bottom: 12px;
+    margin: 0 0 18px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
   }
-  .semi-card-body {
-    padding: 16px 12px !important;
+
+  /* 侧边导航（玻璃栏中的圆角胶囊项） */
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 0;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--foreground);
+    opacity: 0.72;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease,
+      opacity 0.15s ease;
   }
-  .semi-table-wrapper {
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+
+  .nav-item:hover {
+    background: oklch(0 0 0 / 0.05);
+    opacity: 1;
   }
-  .semi-modal {
-    max-width: calc(100vw - 32px) !important;
+
+  .nav-item.active {
+    background: color-mix(in oklab, var(--accent) 13%, transparent);
+    color: var(--accent);
+    opacity: 1;
+  }
+
+  .login-bg {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: 767px) {
+    .page {
+      padding: 14px 12px 28px;
+    }
+    .page-title {
+      font-size: 19px;
+      margin-bottom: 14px;
+    }
   }
 }

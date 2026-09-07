@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, Select, Spin, Toast } from '@douyinfe/semi-ui'
+import { Card, ListBox, ListBoxItem, Select, SelectIndicator, SelectValue, Spinner, toast } from '@heroui/react'
 import { api, errMsg } from '../api/client'
 import type { RequestType } from '../api/types'
 import DynamicForm from '../components/DynamicForm'
@@ -12,15 +12,15 @@ export default function NewRequest() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    api.get<{ list: RequestType[] }>('/request-types').then(
-      ({ data }) => {
+    api
+      .get<{ list: RequestType[] }>('/request-types')
+      .then(({ data }) => {
         const enabled = data.list.filter((t) => t.enabled)
         setTypes(enabled)
         // 只有一个启用类型时直接选中，跳过类型选择
         if (enabled.length === 1) setTypeId(enabled[0].id)
-      },
-      (e) => Toast.error(errMsg(e)),
-    )
+      })
+      .catch((e) => toast.danger(errMsg(e)))
   }, [])
 
   const current = useMemo(() => types?.find((t) => t.id === typeId) ?? null, [types, typeId])
@@ -33,53 +33,77 @@ export default function NewRequest() {
         type_id: current.id,
         form_data: values,
       })
-      Toast.success('提交成功，已通知审批人')
+      toast.success('提交成功，已通知审批人')
       navigate(`/requests/${data.id}`)
     } catch (e) {
-      Toast.error(errMsg(e))
+      toast.danger(errMsg(e))
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (types === null) {
-    return (
-      <div className="page" style={{ display: 'flex', justifyContent: 'center', paddingTop: 80 }}>
-        <Spin size="large" />
-      </div>
-    )
-  }
-
   return (
-    <div className="page" style={{ maxWidth: 720 }}>
+    <div className="page max-w-[720px]">
       <h2 className="page-title">发起请求</h2>
-      <Card>
-        {types.length === 0 ? (
-          <p style={{ color: 'var(--semi-color-text-2)' }}>暂无可用的请求类型，请联系管理员在「类型管理」中开启。</p>
-        ) : (
-          <>
-            {types.length > 1 && (
-              <Select
-                placeholder="选择请求类型"
-                style={{ width: 280, marginBottom: 20 }}
-                value={typeId ?? undefined}
-                onChange={(v) => setTypeId(Number(v))}
-                optionList={types.map((t) => ({ value: t.id, label: t.name }))}
-              />
-            )}
-            {current ? (
-              <DynamicForm
-                fields={current.form_schema.fields}
-                submitText="提交申请"
-                submitting={submitting}
-                onSubmit={handleSubmit}
-              />
+      {types === null ? (
+        <div className="flex justify-center py-24">
+          <Spinner size="lg" />
+        </div>
+      ) : (
+        <Card className="glass rounded-2xl shadow-sm">
+          <Card.Content className="p-6">
+            {types.length === 0 ? (
+              <p className="text-sm text-black/50">
+                暂无可用的请求类型，请联系管理员在「类型管理」中开启。
+              </p>
             ) : (
-              <p style={{ color: 'var(--semi-color-text-2)' }}>请先选择请求类型。</p>
+              <>
+                {types.length > 1 && (
+                  <Select.Root
+                    aria-label="选择请求类型"
+                    selectedKey={typeId}
+                    onSelectionChange={(key) => setTypeId(key === null ? null : Number(key))}
+                    className="mb-5 max-w-xs"
+                  >
+                    <Select.Trigger>
+                      <SelectValue>
+                        {(v) =>
+                          v.isPlaceholder ? (
+                            <span className="opacity-50">选择请求类型</span>
+                          ) : (
+                            v.selectedText
+                          )
+                        }
+                      </SelectValue>
+                      <SelectIndicator />
+                    </Select.Trigger>
+                    <Select.Popover>
+                      <ListBox aria-label="请求类型">
+                        {types.map((t) => (
+                          <ListBoxItem key={t.id} id={t.id} textValue={t.name}>
+                            {t.name}
+                          </ListBoxItem>
+                        ))}
+                      </ListBox>
+                    </Select.Popover>
+                  </Select.Root>
+                )}
+                {current ? (
+                  <DynamicForm
+                    key={current.id}
+                    fields={current.form_schema.fields}
+                    submitText="提交申请"
+                    submitting={submitting}
+                    onSubmit={handleSubmit}
+                  />
+                ) : (
+                  <p className="text-sm text-black/50">请先选择请求类型。</p>
+                )}
+              </>
             )}
-          </>
-        )}
-      </Card>
+          </Card.Content>
+        </Card>
+      )}
     </div>
   )
 }

@@ -1,15 +1,19 @@
-import { Tag } from '@douyinfe/semi-ui'
+import { Chip } from '@heroui/react'
 import type { RequestStatus } from '../api/types'
 import { STATUS_TEXT } from '../api/types'
 
-const COLOR: Record<RequestStatus, 'orange' | 'green' | 'red' | 'blue' | 'grey'> = {
-  pending: 'orange',
-  approved: 'green',
-  rejected: 'red',
-  returned: 'blue',
-  withdrawn: 'grey',
+const COLOR: Record<RequestStatus, 'warning' | 'success' | 'danger' | 'accent' | 'default'> = {
+  pending: 'warning',
+  approved: 'success',
+  rejected: 'danger',
+  returned: 'accent',
+  withdrawn: 'default',
 }
 
 export default function StatusTag({ status }: { status: RequestStatus }) {
-  return <Tag color={COLOR[status]}>{STATUS_TEXT[status]}</Tag>
+  return (
+    <Chip color={COLOR[status]} variant="soft" size="sm">
+      {STATUS_TEXT[status]}
+    </Chip>
+  )
 }

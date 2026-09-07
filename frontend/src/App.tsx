@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { Spin } from '@douyinfe/semi-ui'
+import { Spinner } from '@heroui/react'
+import type { ReactNode } from 'react'
 import { useAuth } from './store/auth'
 import MainLayout from './layouts/MainLayout'
 import Login from './pages/Login'
@@ -12,13 +13,13 @@ import RequestTypes from './pages/RequestTypes'
 import Settings from './pages/Settings'
 import MailLogs from './pages/MailLogs'
 
-function RequireAuth({ children }: { children: JSX.Element }) {
+function RequireAuth({ children }: { children: ReactNode }) {
   const { user, ready } = useAuth()
   const location = useLocation()
   if (!ready) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 160 }}>
-        <Spin size="large" tip="加载中…" />
+      <div className="flex justify-center pt-40">
+        <Spinner size="lg" />
       </div>
     )
   }
@@ -28,7 +29,7 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   return children
 }
 
-function RequireAdmin({ children }: { children: JSX.Element }) {
+function RequireAdmin({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   if (user?.role !== 'admin') {
     return <Navigate to="/" replace />
@@ -52,7 +53,14 @@ export default function App() {
         <Route path="requests/new" element={<NewRequest />} />
         <Route path="requests" element={<RequestsList scope="mine" />} />
         <Route path="approvals" element={<RequestsList scope="pending" />} />
-        <Route path="manage/requests" element={<RequestsList scope="all" />} />
+        <Route
+          path="manage/requests"
+          element={
+            <RequireAdmin>
+              <RequestsList scope="all" />
+            </RequireAdmin>
+          }
+        />
         <Route path="requests/:id" element={<RequestDetail />} />
         <Route
           path="manage/users"
