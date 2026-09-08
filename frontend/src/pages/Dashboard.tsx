@@ -39,10 +39,13 @@ export default function Dashboard() {
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {cards.map((c) => (
-          <Card key={c.title} className="glass rounded-2xl shadow-sm">
-            <Card.Content className="p-4">
+          <Card key={c.title} className="glass min-w-0 rounded-2xl shadow-sm">
+            <Card.Content className="min-w-0 overflow-hidden p-4">
               <div className="text-[13px] text-black/45">{c.title}</div>
-              <div className="mt-1 text-[22px] leading-tight font-bold" style={{ color: c.color }}>
+              <div
+                className="mt-1 text-[17px] leading-tight font-bold break-all sm:text-[22px] sm:break-normal"
+                style={{ color: c.color }}
+              >
                 {loading ? <Spinner size="sm" /> : c.value}
               </div>
             </Card.Content>
