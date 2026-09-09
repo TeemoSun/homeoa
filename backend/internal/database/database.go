@@ -28,6 +28,10 @@ func Open(cfg *config.Config) (*gorm.DB, error) {
 		if err == nil {
 			sqlDB, pingErr := db.DB()
 			if pingErr == nil && sqlDB.Ping() == nil {
+				sqlDB.SetMaxOpenConns(25)
+				sqlDB.SetMaxIdleConns(10)
+				sqlDB.SetConnMaxLifetime(10 * time.Minute)
+				sqlDB.SetConnMaxIdleTime(5 * time.Minute)
 				return db, nil
 			}
 		}

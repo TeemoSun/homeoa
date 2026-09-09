@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Card, Table, toast } from '@heroui/react'
+import { Button, Card, Spinner, Table, toast } from '@heroui/react'
 import { api, errMsg, fmtAmount, fmtTime } from '../api/client'
 import type { PageData, RequestItem } from '../api/types'
 import ConfirmButton from '../components/ConfirmButton'
@@ -79,7 +79,13 @@ export default function RequestsList({ scope }: { scope: 'mine' | 'pending' | 'a
                   items={list}
                   renderEmptyState={() => (
                     <div className="py-12 text-center text-sm text-black/40">
-                      {scope === 'pending' ? '太好了，没有待你审批的申请' : '暂无数据'}
+                      {loading ? (
+                        <div className="flex justify-center py-4">
+                          <Spinner size="md" />
+                        </div>
+                      ) : (
+                        scope === 'pending' ? '太好了，没有待你审批的申请' : '暂无数据'
+                      )}
                     </div>
                   )}
                 >

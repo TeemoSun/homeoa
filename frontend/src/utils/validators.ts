@@ -10,7 +10,11 @@ export function minLength(min: number, msg: string): FieldValidator {
 }
 
 export function pattern(re: RegExp, msg: string): FieldValidator {
-  return (v) => (v && re.test(v.trim()) ? undefined : msg)
+  const cleanRegex = new RegExp(re.source, re.flags.replace('g', ''))
+  return (v) => {
+    if (!v || v.trim() === '') return undefined
+    return cleanRegex.test(v.trim()) ? undefined : msg
+  }
 }
 
 // 邮箱选填：填了才校验格式

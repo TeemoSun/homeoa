@@ -23,8 +23,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("配置加载失败: %v", err)
 	}
-	if _, err := time.LoadLocation(cfg.TZ); err != nil {
+	if loc, err := time.LoadLocation(cfg.TZ); err != nil {
 		log.Printf("时区 %s 不可用，使用系统默认: %v", cfg.TZ, err)
+	} else {
+		time.Local = loc
 	}
 
 	db, err := database.Open(cfg)
@@ -38,7 +40,7 @@ func main() {
 		log.Fatalf("种子数据写入失败: %v", err)
 	}
 
-	r, err := router.New(cfg, db)
+	r, mailClient, err := router.New(cfg, db)
 	if err != nil {
 		log.Fatalf("路由初始化失败: %v", err)
 	}
@@ -68,5 +70,8 @@ func main() {
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Printf("优雅关闭失败: %v", err)
+	}
+	if err := mailClient.Close(ctx); err != nil {
+		log.Printf("邮件发送等待超时: %v", err)
 	}
 }

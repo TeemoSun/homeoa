@@ -153,7 +153,7 @@ func (l *LoginLimiter) Allow(ip string) bool {
 func LoginRateLimit(limiter *LoginLimiter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !limiter.Allow(c.ClientIP()) {
-			time.Sleep(1 * time.Second)
+			c.Header("Retry-After", "300")
 			abort(c, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", "尝试次数过多，请稍后再试")
 			return
 		}

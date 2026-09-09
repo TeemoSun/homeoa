@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import axios from 'axios'
 import { api, getToken, setToken } from '../api/client'
 import type { User } from '../api/types'
 
@@ -34,9 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data } = await api.get<User>('/auth/me')
       setUser(data)
-    } catch {
-      setToken(null)
-      setUser(null)
+    } catch (e) {
+      if (axios.isAxiosError(e) && e.response?.status === 401) {
+        setToken(null)
+        setUser(null)
+      }
     } finally {
       setReady(true)
     }
@@ -59,8 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateUser = useCallback((u: User) => setUser(u), [])
 
+  const contextValue = useMemo(
+    () => ({ user, ready, login, logout, refresh, updateUser }),
+    [user, ready, login, logout, refresh, updateUser],
+  )
+
   return (
-    <AuthContext.Provider value={{ user, ready, login, logout, refresh, updateUser }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   )

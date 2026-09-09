@@ -19,21 +19,22 @@ import (
 	"homeoa/internal/web"
 )
 
-func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
+func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, *mailer.Mailer, error) {
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.New()
 	// 应用直接面向公网，不信任代理头，避免伪造 X-Forwarded-For 绕过限流
 	if err := r.SetTrustedProxies(nil); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	r.Use(middleware.SecureHeaders(), middleware.MaxBody(1<<20), gin.Recovery())
 
 	jwtMgr := middleware.NewJWTManager([]byte(cfg.JWTSecret), cfg.JWTExpireHours)
+	mailClient := mailer.New(cfg, db)
 	userSvc := &service.UserService{DB: db}
 	typeSvc := &service.RequestTypeService{DB: db}
-	reqSvc := &service.RequestService{DB: db, Mailer: mailer.New(cfg, db)}
+	reqSvc := &service.RequestService{DB: db, Mailer: mailClient}
 	authH := &handler.AuthHandler{Users: userSvc, JWT: jwtMgr}
 	userH := &handler.UserHandler{Users: userSvc}
 	typeH := &handler.RequestTypeHandler{Types: typeSvc}
@@ -81,7 +82,7 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 	// 前端静态资源 + SPA fallback：非 /api 路径一律回退到 index.html
 	dist, err := web.Dist()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	fileServer := http.FileServer(http.FS(dist))
 	r.NoRoute(func(c *gin.Context) {
@@ -99,22 +100,27 @@ func New(cfg *config.Config, db *gorm.DB) (*gin.Engine, error) {
 			name = "index.html"
 		}
 		if _, err := fs.Stat(dist, name); err != nil || strings.HasSuffix(name, "/") {
-			// 未知路径回退到 SPA 入口
+			// 未知路径回退到 SPA 入口，必须重置 name 为 index.html
+			name = "index.html"
 			c.Request.URL.Path = "/"
 		}
-		if name == "index.html" || name == "" {
+		if name == "index.html" {
 			index, rerr := fs.ReadFile(dist, "index.html")
 			if rerr != nil {
 				c.String(http.StatusNotFound, "前端资源缺失")
 				return
 			}
-			c.Header("Cache-Control", "no-cache")
+			c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
 			c.Data(http.StatusOK, "text/html; charset=utf-8", index)
 			return
 		}
-		// 带 hash 的静态资源可以长缓存
-		c.Header("Cache-Control", "public, max-age=31536000, immutable")
+		// 带 hash 的静态资源可以长缓存，非 hash 根文件短期缓存
+		if strings.HasPrefix(name, "assets/") {
+			c.Header("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			c.Header("Cache-Control", "public, max-age=86400")
+		}
 		fileServer.ServeHTTP(c.Writer, c.Request)
 	})
-	return r, nil
+	return r, mailClient, nil
 }

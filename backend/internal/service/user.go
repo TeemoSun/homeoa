@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"homeoa/internal/database"
 	"homeoa/internal/model"
@@ -92,10 +93,10 @@ func (s *UserService) UpdateMe(user *model.User, in UpdateMeInput) error {
 		// 递增凭据版本，使已签发的登录凭据全部失效
 		updates["token_version"] = gorm.Expr("token_version + 1")
 	}
-	if len(updates) == 0 {
-		return errors.New("没有需要更新的内容")
+	if err := s.DB.Model(user).Updates(updates).Error; err != nil {
+		return Internal(err)
 	}
-	return s.DB.Model(user).Updates(updates).Error
+	return s.DB.First(user, user.ID).Error
 }
 
 type CreateUserInput struct {
@@ -156,61 +157,72 @@ type UpdateUserInput struct {
 
 func (s *UserService) Update(actor *model.User, id uint, in UpdateUserInput) (*model.User, error) {
 	var user model.User
-	if err := s.DB.First(&user, id).Error; err != nil {
-		return nil, ErrNotFound
-	}
-	updates := map[string]any{}
-	if in.DisplayName != nil {
-		v := trimString(*in.DisplayName, 64)
-		if v == "" {
-			return nil, errors.New("姓名不能为空")
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&user, id).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrNotFound
+			}
+			return Internal(err)
 		}
-		updates["display_name"] = v
-	}
-	if in.Email != nil {
-		v := trimString(*in.Email, 128)
-		if err := validateEmail(v); err != nil {
-			return nil, err
+		updates := map[string]any{}
+		if in.DisplayName != nil {
+			v := trimString(*in.DisplayName, 64)
+			if v == "" {
+				return errors.New("姓名不能为空")
+			}
+			updates["display_name"] = v
 		}
-		updates["email"] = v
-	}
-	if in.MailEnabled != nil {
-		updates["mail_enabled"] = *in.MailEnabled
-	}
-	if in.Role != nil {
-		if *in.Role != model.RoleAdmin && *in.Role != model.RoleMember {
-			return nil, errors.New("角色只能是 admin 或 member")
+		if in.Email != nil {
+			v := trimString(*in.Email, 128)
+			if err := validateEmail(v); err != nil {
+				return err
+			}
+			updates["email"] = v
 		}
-		if user.Role == model.RoleAdmin && *in.Role != model.RoleAdmin && !s.leaveMoreThanOneAdmin(&user) {
-			return nil, errors.New("至少需要保留一名管理员")
+		if in.MailEnabled != nil {
+			updates["mail_enabled"] = *in.MailEnabled
 		}
-		updates["role"] = *in.Role
-	}
-	if in.Password != "" {
-		if err := validatePassword(in.Password); err != nil {
-			return nil, err
+		if in.Role != nil {
+			if *in.Role != model.RoleAdmin && *in.Role != model.RoleMember {
+				return errors.New("角色只能是 admin 或 member")
+			}
+			if user.Role == model.RoleAdmin && *in.Role != model.RoleAdmin {
+				var otherAdmins int64
+				if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+					Model(&model.User{}).
+					Where("role = ? AND id <> ?", model.RoleAdmin, id).
+					Count(&otherAdmins).Error; err != nil {
+					return Internal(err)
+				}
+				if otherAdmins <= 0 {
+					return errors.New("至少需要保留一名管理员")
+				}
+			}
+			updates["role"] = *in.Role
 		}
-		hash, err := database.HashPassword(in.Password)
-		if err != nil {
-			return nil, err
+		if in.Password != "" {
+			if err := validatePassword(in.Password); err != nil {
+				return err
+			}
+			hash, err := database.HashPassword(in.Password)
+			if err != nil {
+				return err
+			}
+			updates["password_hash"] = hash
+			updates["token_version"] = gorm.Expr("token_version + 1")
 		}
-		updates["password_hash"] = hash
-		updates["token_version"] = gorm.Expr("token_version + 1")
-	}
-	if len(updates) == 0 {
-		return nil, errors.New("没有需要更新的内容")
-	}
-	if err := s.DB.Model(&user).Updates(updates).Error; err != nil {
-		return nil, Internal(err)
+		if len(updates) == 0 {
+			return errors.New("没有需要更新的内容")
+		}
+		if err := tx.Model(&user).Updates(updates).Error; err != nil {
+			return Internal(err)
+		}
+		return tx.First(&user, id).Error
+	})
+	if err != nil {
+		return nil, err
 	}
 	return &user, nil
-}
-
-func (s *UserService) leaveMoreThanOneAdmin(changing *model.User) bool {
-	var otherAdmins int64
-	s.DB.Model(&model.User{}).
-		Where("role = ? AND id <> ?", model.RoleAdmin, changing.ID).Count(&otherAdmins)
-	return otherAdmins > 0
 }
 
 func (s *UserService) List() ([]model.User, error) {
@@ -223,22 +235,47 @@ func (s *UserService) Delete(actor *model.User, id uint) error {
 	if actor.ID == id {
 		return errors.New("不能删除自己的账号")
 	}
-	var user model.User
-	if err := s.DB.First(&user, id).Error; err != nil {
-		return ErrNotFound
-	}
-	if user.Role == model.RoleAdmin && !s.leaveMoreThanOneAdmin(&user) {
-		return errors.New("至少需要保留一名管理员")
-	}
-	var refs int64
-	if err := s.DB.Model(&model.Request{}).Where("submitter_id = ? OR approver_id = ?", id, id).Count(&refs).Error; err != nil {
-		return Internal(err)
-	}
-	if refs > 0 {
-		return errors.New("该用户名下存在关联审批单，不能删除；可改为停用其邮箱通知或改密")
-	}
-	if err := s.DB.Delete(&model.User{}, id).Error; err != nil {
-		return Internal(err)
-	}
-	return nil
+
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		var user model.User
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&user, id).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrNotFound
+			}
+			return Internal(err)
+		}
+		if user.Role == model.RoleAdmin {
+			var otherAdmins int64
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Model(&model.User{}).
+				Where("role = ? AND id <> ?", model.RoleAdmin, id).
+				Count(&otherAdmins).Error; err != nil {
+				return Internal(err)
+			}
+			if otherAdmins <= 0 {
+				return errors.New("至少需要保留一名管理员")
+			}
+		}
+
+		// 检查是否为某审批类型的专属审批人
+		var typeRefs int64
+		if err := tx.Model(&model.RequestType{}).Where("approver_id = ?", id).Count(&typeRefs).Error; err != nil {
+			return Internal(err)
+		}
+		if typeRefs > 0 {
+			return errors.New("该用户为特定请求类型的默认审批人，请先调整类型审批人后再删除")
+		}
+
+		var refs int64
+		if err := tx.Model(&model.Request{}).Where("submitter_id = ? OR approver_id = ?", id, id).Count(&refs).Error; err != nil {
+			return Internal(err)
+		}
+		if refs > 0 {
+			return errors.New("该用户名下存在关联审批单，不能删除；可改为停用其邮箱通知或改密")
+		}
+		if err := tx.Delete(&model.User{}, id).Error; err != nil {
+			return Internal(err)
+		}
+		return nil
+	})
 }

@@ -50,22 +50,24 @@ export default function RequestDetail() {
   const [newComment, setNewComment] = useState('')
   const [resubmitOpen, setResubmitOpen] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (isInitial = false) => {
+    if (isInitial) setLoading(true)
     try {
       const { data } = await api.get<{ request: RequestItem; logs: RequestLog[] }>(`/requests/${id}`)
       setRequest(data.request)
       setLogs(data.logs)
     } catch (e) {
       toast.danger(errMsg(e))
-      navigate('/')
+      if (isInitial) {
+        navigate('/')
+      }
     } finally {
-      setLoading(false)
+      if (isInitial) setLoading(false)
     }
   }, [id, navigate])
 
   useEffect(() => {
-    void load()
+    void load(true)
   }, [load])
 
   const canDecide = useMemo(() => {
@@ -305,7 +307,7 @@ export default function RequestDetail() {
             <Modal.Body>
               {t?.form_schema && (
                 <DynamicForm
-                  key={request.id}
+                  key={`${request.id}-${resubmitOpen}`}
                   fields={t.form_schema.fields}
                   initValues={formData}
                   submitText="重新提交"

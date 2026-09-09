@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wneessen/go-mail"
@@ -19,19 +20,43 @@ import (
 type Mailer struct {
 	cfg *config.Config
 	db  *gorm.DB
+	wg  sync.WaitGroup
 }
 
 func New(cfg *config.Config, db *gorm.DB) *Mailer {
 	return &Mailer{cfg: cfg, db: db}
 }
 
+// Close 等待所有在途邮件发送完成或上下文超时。
+func (m *Mailer) Close(ctx context.Context) error {
+	if m == nil {
+		return nil
+	}
+	done := make(chan struct{})
+	go func() {
+		m.wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 // sendSem 限制同时发送的邮件 goroutine 数量，防止高频事件耗尽 SMTP 配额。
 var sendSem = make(chan struct{}, 4)
 
 // SendAsync 向单个收件人异步发送，失败后重试一次，结果写入 mail_logs。
-// 不阻塞 API 响应；发送失败只记日志，不影响业务。
+// 不阻塞 API 响应；发送失败只记日志，不影响业务。未启用邮件时直接退出。
 func (m *Mailer) SendAsync(requestID *uint, toEmail, subject, htmlBody string) {
+	if m == nil || !m.cfg.MailEnabled {
+		return
+	}
+	m.wg.Add(1)
 	go func() {
+		defer m.wg.Done()
 		defer func() {
 			if r := recover(); r != nil {
 				log.Printf("邮件 goroutine panic: %v", r)
@@ -63,8 +88,11 @@ func (m *Mailer) SendAsync(requestID *uint, toEmail, subject, htmlBody string) {
 	}()
 }
 
-// RecordSkipped 记录一条跳过发送的日志（用户未配置邮箱或已关闭通知）。
+// RecordSkipped 记录一条跳过发送的日志（用户未配置邮箱或已关闭通知）。未启用邮件时跳过。
 func (m *Mailer) RecordSkipped(requestID *uint, toEmail, subject, reason string) {
+	if m == nil || !m.cfg.MailEnabled {
+		return
+	}
 	m.db.Create(&model.MailLog{
 		RequestID: requestID,
 		ToEmail:   toEmail,
@@ -127,6 +155,7 @@ func esc(s string) string {
 	s = strings.ReplaceAll(s, "<", "&lt;")
 	s = strings.ReplaceAll(s, ">", "&gt;")
 	s = strings.ReplaceAll(s, `"`, "&#34;")
+	s = strings.ReplaceAll(s, `'`, "&#39;")
 	return s
 }
 

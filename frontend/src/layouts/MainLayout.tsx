@@ -11,6 +11,7 @@ import type { ComponentType } from 'react'
 import { useEffect } from 'react'
 import {
   IconDashboard,
+  IconLayers,
   IconList,
   IconLogout,
   IconMail,
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const ADMIN_ITEMS: NavItem[] = [
   { itemKey: '/manage/requests', text: '请求管理', icon: IconList },
+  { itemKey: '/manage/types', text: '审批类型', icon: IconLayers },
   { itemKey: '/manage/users', text: '成员管理', icon: IconUsers },
   { itemKey: '/manage/mail-logs', text: '邮件日志', icon: IconMail },
 ]

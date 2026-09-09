@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -83,22 +85,32 @@ func toString(v any) string {
 }
 
 func toFloat(v any) (float64, error) {
+	var f float64
 	switch n := v.(type) {
 	case float64:
-		return n, nil
+		f = n
 	case float32:
-		return float64(n), nil
+		f = float64(n)
 	case int:
-		return float64(n), nil
+		f = float64(n)
 	case int64:
-		return float64(n), nil
+		f = float64(n)
 	case string:
-		var f float64
-		_, err := fmt.Sscanf(strings.TrimSpace(n), "%g", &f)
-		return f, err
+		val, err := strconv.ParseFloat(strings.TrimSpace(n), 64)
+		if err != nil {
+			return 0, errors.New("不是合法的数值格式")
+		}
+		f = val
 	default:
 		return 0, errors.New("不是数字")
 	}
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return 0, errors.New("数值非法 (NaN/Inf)")
+	}
+	if f > 9999999999.99 {
+		return 0, errors.New("数值超出系统允许的最大金额")
+	}
+	return f, nil
 }
 
 func utf8Len(s string) int { return len([]rune(s)) }
@@ -260,6 +272,9 @@ func (s *RequestService) Resubmit(user *model.User, id uint, in CreateRequestInp
 	if req.Status != model.StatusReturned {
 		return nil, errors.New("只有被退回的申请才能重新提交")
 	}
+	if req.Type == nil || !req.Type.Enabled {
+		return nil, errors.New("该请求类型已停用，无法重新提交")
+	}
 	schema, err := model.ParseFormSchema(req.Type.FormSchema)
 	if err != nil {
 		return nil, err
@@ -280,12 +295,18 @@ func (s *RequestService) Resubmit(user *model.User, id uint, in CreateRequestInp
 		title = trimString(req.Type.Name+"："+hint, 128)
 	}
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&req).Updates(map[string]any{
-			"form_data": model.JSON(raw), "amount": amountPtrValue(amount), "title": title,
-			"status": model.StatusPending, "approver_id": nil,
-			"decision_comment": "", "decided_at": nil,
-		}).Error; err != nil {
-			return err
+		res := tx.Model(&model.Request{}).
+			Where("id = ? AND status = ?", req.ID, model.StatusReturned).
+			Updates(map[string]any{
+				"form_data": model.JSON(raw), "amount": amountPtrValue(amount), "title": title,
+				"status": model.StatusPending, "approver_id": nil,
+				"decision_comment": "", "decided_at": nil,
+			})
+		if res.Error != nil {
+			return Internal(res.Error)
+		}
+		if res.RowsAffected == 0 {
+			return errors.New("该申请状态已变更，请刷新查看最新状态")
 		}
 		return tx.Create(&model.RequestLog{
 			RequestID: req.ID, ActorID: user.ID, Action: model.ActionResubmit,

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Card, Chip, Table, toast } from '@heroui/react'
+import { Card, Chip, Spinner, Table, toast } from '@heroui/react'
 import { api, errMsg, fmtTime } from '../api/client'
 import type { MailLog, PageData } from '../api/types'
 import TablePager from '../components/TablePager'
 
-const STATUS_CHIP: Record<MailLog['status'], { color: 'success' | 'danger' | 'default'; text: string }> = {
+const STATUS_CHIP: Record<string, { color: 'success' | 'danger' | 'default'; text: string }> = {
   sent: { color: 'success', text: '已发送' },
   failed: { color: 'danger', text: '失败' },
-  skipped: { color: 'default', text: '跳过' },
+  skipped: { color: 'default', text: '已跳过' },
 }
 
 const PAGE_SIZE = 20
@@ -56,7 +56,15 @@ export default function MailLogs() {
                 <Table.Body
                   items={list}
                   renderEmptyState={() => (
-                    <div className="py-12 text-center text-sm text-black/40">暂无邮件记录</div>
+                    <div className="py-12 text-center text-sm text-black/40">
+                      {loading ? (
+                        <div className="flex justify-center py-4">
+                          <Spinner size="md" />
+                        </div>
+                      ) : (
+                        '暂无邮件记录'
+                      )}
+                    </div>
                   )}
                 >
                   {(item: MailLog) => (

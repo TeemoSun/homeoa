@@ -8,6 +8,7 @@ import {
   NumberField,
   TextArea,
   TextField,
+  toast,
 } from '@heroui/react'
 import type { FormField } from '../api/types'
 
@@ -48,6 +49,16 @@ export default function DynamicForm({
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (submitting) return
+    for (const f of fields) {
+      if (f.required) {
+        const v = values[f.name]
+        if (v === undefined || v === null || String(v).trim() === '') {
+          toast.warning(`请填写：${f.label}`)
+          return
+        }
+      }
+    }
     onSubmit({ ...values })
   }
 

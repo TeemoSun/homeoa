@@ -89,6 +89,23 @@ func TestValidateFormData(t *testing.T) {
 	}); err == nil {
 		t.Fatal("数字字段为负数应报错")
 	}
+	// 数字字段含非法尾随字符
+	if _, _, _, err := ValidateFormData(schema, map[string]any{
+		"item_name": "x", "amount": "123abc",
+	}); err == nil {
+		t.Fatal("带尾随字符的数字应报错")
+	}
+	// NaN / Inf
+	if _, _, _, err := ValidateFormData(schema, map[string]any{
+		"item_name": "x", "amount": "NaN",
+	}); err == nil {
+		t.Fatal("NaN 应报错")
+	}
+	if _, _, _, err := ValidateFormData(schema, map[string]any{
+		"item_name": "x", "amount": "+Inf",
+	}); err == nil {
+		t.Fatal("+Inf 应报错")
+	}
 	// 日期格式错误
 	if _, _, _, err := ValidateFormData(schema, map[string]any{
 		"item_name": "x", "amount": 1, "expected_date": "09-15",
@@ -182,6 +199,15 @@ func TestReturnAndResubmitFlow(t *testing.T) {
 		t.Fatalf("退回失败: %v", err)
 	}
 
+	// 停用类型后不能重新提交
+	db.Model(&model.RequestType{}).Where("id = 1").Update("enabled", false)
+	if _, err := svc.Resubmit(&member, req.ID, CreateRequestInput{
+		FormData: []byte(`{"item_name":"键盘","amount":"199","reason":"打字累"}`),
+	}); err == nil {
+		t.Fatal("类型停用后重新提交应报错")
+	}
+	db.Model(&model.RequestType{}).Where("id = 1").Update("enabled", true)
+
 	// 重新提交
 	updated, err := svc.Resubmit(&member, req.ID, CreateRequestInput{
 		FormData: []byte(`{"item_name":"键盘","amount":"199","reason":"打字累"}`),
@@ -250,6 +276,20 @@ func TestUserService(t *testing.T) {
 	db.Where("role = ?", model.RoleAdmin).First(&admin)
 	if err := svc.Delete(&admin, admin.ID); err == nil {
 		t.Fatal("删除自己应报错")
+	}
+
+	// 审批类型绑定人删除保护
+	member2, _ := svc.Create(CreateUserInput{
+		Username: "approver1", DisplayName: "审批人", Email: "app@example.com",
+		Password: testPassword(), Role: model.RoleMember,
+	})
+	db.Model(&model.RequestType{}).Where("id = 1").Update("approver_id", member2.ID)
+	if err := svc.Delete(&admin, member2.ID); err == nil {
+		t.Fatal("类型绑定的审批人删除应报错")
+	}
+	db.Model(&model.RequestType{}).Where("id = 1").Update("approver_id", nil)
+	if err := svc.Delete(&admin, member2.ID); err != nil {
+		t.Fatalf("解绑后删除应成功: %v", err)
 	}
 }
 

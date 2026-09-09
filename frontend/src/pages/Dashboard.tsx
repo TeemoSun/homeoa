@@ -74,7 +74,18 @@ export default function Dashboard() {
                   <Table.Column id="created_at">提交时间</Table.Column>
                   <Table.Column id="status">状态</Table.Column>
                 </Table.Header>
-                <Table.Body items={todoList} renderEmptyState={() => <EmptyTodo />}>
+                <Table.Body
+                  items={todoList}
+                  renderEmptyState={() =>
+                    loading ? (
+                      <div className="flex justify-center py-6">
+                        <Spinner size="md" />
+                      </div>
+                    ) : (
+                      <EmptyTodo />
+                    )
+                  }
+                >
                   {(item: RequestItem) => (
                     <Table.Row id={item.id} className="cursor-pointer">
                       <Table.Cell>{item.title}</Table.Cell>

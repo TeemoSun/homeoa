@@ -38,8 +38,11 @@ function ApproverSelect({
   return (
     <Select.Root
       aria-label="默认审批人"
-      selectedKey={value ?? 0}
-      onSelectionChange={(key) => onChange(key === 0 || key === null ? null : Number(key))}
+      selectedKey={value === null ? '0' : String(value)}
+      onSelectionChange={(key) => {
+        const str = String(key)
+        onChange(str === '0' || key === null ? null : Number(str))
+      }}
       className="max-w-xs"
     >
       <Select.Trigger>
@@ -56,11 +59,11 @@ function ApproverSelect({
       </Select.Trigger>
       <Select.Popover>
         <ListBox aria-label="默认审批人">
-          <ListBoxItem id={0} textValue="全部管理员">
+          <ListBoxItem id="0" textValue="全部管理员">
             全部管理员（默认）
           </ListBoxItem>
           {users.map((u) => (
-            <ListBoxItem key={u.id} id={u.id} textValue={u.display_name}>
+            <ListBoxItem key={u.id} id={String(u.id)} textValue={u.display_name}>
               {u.display_name}（{u.role === 'admin' ? '管理员' : '成员'}）
             </ListBoxItem>
           ))}
