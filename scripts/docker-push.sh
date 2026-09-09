@@ -8,9 +8,10 @@ USER="${GHCR_USER:-teemosun}"
 REGISTRY="${GHCR_REGISTRY:-ghcr.io}"
 IMAGE="${REGISTRY}/${USER}/homeoa"
 DATE_TAG="$(date +%Y%m%d)"
+GOPROXY="${GOPROXY:-https://goproxy.cn,direct}"
 
 echo "==> Building $IMAGE:latest and :$DATE_TAG"
-docker build -t "$IMAGE:latest" -t "$IMAGE:$DATE_TAG" .
+docker build --build-arg GOPROXY="$GOPROXY" -t "$IMAGE:latest" -t "$IMAGE:$DATE_TAG" .
 
 echo "==> Pushing tags"
 docker push "$IMAGE:latest"
